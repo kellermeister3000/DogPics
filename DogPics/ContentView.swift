@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AVFAudio
 
 struct ContentView: View {
     enum Breed: String, CaseIterable {
@@ -14,6 +15,7 @@ struct ContentView: View {
     
     @StateObject var dogVM = DogViewModel()
     @State private var selectedBreed: Breed = .boxer
+    @State private var audioPlayer: AVAudioPlayer!
     
     var body: some View {
         VStack {
@@ -25,7 +27,27 @@ struct ContentView: View {
             
             Spacer()
             
+            AsyncImage(url: URL(string: dogVM.imageURL)) { image in
+                image
+                    .resizable()
+                    .scaledToFit()
+                    .cornerRadius(15)
+                    .shadow(radius: 15)
+                    .animation(.default, value: image)
+            } placeholder: {
+                Image(systemName: "photo")
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundColor(.brown)
+                    .padding()
+            }
+            
+
+            
+            Spacer()
+            
             Button("Any Random Dog") {
+                dogVM.urlString = "https://dog.ceo/api/breeds/image/random"
                 Task {
                     await dogVM.getData()
                 }
@@ -38,7 +60,10 @@ struct ContentView: View {
             
             HStack {
                 Button("Show Breed") {
-                    
+                    dogVM.urlString = "https://dog.ceo/api/breed/\(selectedBreed.rawValue)/images/random"
+                    Task {
+                        await dogVM.getData()
+                    }
                 }
                 .buttonStyle(.borderedProminent)
                 .padding(.bottom)
@@ -54,6 +79,22 @@ struct ContentView: View {
             .tint(.brown)
         }
         .padding()
+        .onAppear {
+            playSound(soundName: "bark")
+        }
+    }
+    
+    func playSound(soundName: String) {
+        guard let soundFile = NSDataAsset(name: soundName) else {
+            print("😡 Could not read file named \(soundName)")
+            return
+        }
+        do {
+            audioPlayer = try AVAudioPlayer(data: soundFile.data)
+            audioPlayer.play()
+        } catch {
+            print("😡 ERROR: \(error.localizedDescription) creating audioPlayer.")
+        }
     }
 }
 
